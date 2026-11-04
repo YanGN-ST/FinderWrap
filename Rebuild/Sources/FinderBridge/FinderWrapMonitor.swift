@@ -877,7 +877,8 @@ public final class FinderWrapMonitor {
         lock.unlock()
 
         var lines: [String] = []
-        lines.append("FinderWrap 1.0.12 (rebuild)")
+        let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "unknown"
+        lines.append("FinderWrap \(appVersion) (rebuild)")
         lines.append(t("macOS：", "macOS: ") + ProcessInfo.processInfo.operatingSystemVersionString)
         if let finder = NSRunningApplication.runningApplications(withBundleIdentifier: "com.apple.finder").first,
            let bundle = finder.bundleURL.flatMap({ Bundle(url: $0) }),

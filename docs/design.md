@@ -1,4 +1,4 @@
-# 1.0.12 架构
+# 1.0.13 架构
 
 三层：事件监听、布局缓存、按键判决。
 
@@ -6,7 +6,9 @@
 2. **布局缓存**：`GridReader` 在后台队列（350ms 周期）抓取一次可见图标表面，发布不可变快照；选择变化**不**作废布局。快照含 grid 元素、可见项 URL/几何、行聚类结果、是否 Quick Look、grid 的角色/子角色/标识。
 3. **按键判决**：`WrapEngine` 是纯函数 —— 按 Y 聚类成行、按 X 排序，行尾/行首跨行，文档首尾循环；多选时用最外侧选中项定位。Shift 扩选由 `shiftDecide` 维护锚点/活动端，在行边界把整段范围写回 `AXSelectedChildren`；超出 Finder 已加载的行时只读快照找不到目标，此时消费按键并保留选区（交回 native 会移动 Finder 自己的锚点并折叠选区）。画廊视图走单行循环规则；列表视图与 Shift+方向键保留 Finder 原生。Shift 扩选有独立开关，关闭后 Shift+方向键完全交还 Finder。
 
-启动注册：`SMAppService.mainApp` 负责登录项注册/注销；面板“启动”区读取系统状态，`requiresApproval` 时提示到“系统设置 → 通用 → 登录项”批准。
+启动注册：`SMAppService.mainApp` 负责登录项注册/注销；面板“启动”区读取系统状态，`requiresApproval` 时提示到“系统设置 → 通用 → 登录项”批准。登录项启动时 AppleEvent 带 `keyAELaunchedAsLogInItem`，此时即使隐藏了图标也不弹面板。
+
+菜单栏呈现：常驻 `NSStatusItem`，点图标弹出 `NSPopover` 面板。勾选“隐藏菜单栏图标”后移除状态项、应用继续在后台运行；重新打开 FinderWrap（`applicationShouldHandleReopen`）或在隐藏状态下手动启动时，面板以可关闭的小窗口出现在菜单栏下方右侧。恢复图标时重建状态项（`isVisible = true` 在近期 macOS 上不能可靠恢复已隐藏的项）。
 
 场景识别：
 

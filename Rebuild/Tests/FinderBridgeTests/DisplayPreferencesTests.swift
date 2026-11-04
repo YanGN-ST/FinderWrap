@@ -23,5 +23,15 @@ final class DisplayPreferencesTests: XCTestCase {
     func testPreferenceKeysAreStable() {
         XCTAssertEqual(AppLanguage.storageKey, "displayLanguage")
         XCTAssertEqual(AppAppearance.storageKey, "appAppearance")
+        XCTAssertEqual(AppMenuBarIcon.storageKey, "hideMenuBarIcon")
+    }
+
+    func testMenuBarIconResolution() {
+        XCTAssertEqual(AppMenuBarIcon.resolved(storedHidden: false), .visible)
+        XCTAssertEqual(AppMenuBarIcon.resolved(storedHidden: true), .hidden)
+        XCTAssertFalse(AppMenuBarIcon.visible.isHidden)
+        XCTAssertTrue(AppMenuBarIcon.hidden.isHidden)
+        XCTAssertEqual(AppMenuBarIcon.hidden.storedValue, true)
+        XCTAssertEqual(AppMenuBarIcon.visible.storedValue, false)
     }
 }

@@ -20,6 +20,7 @@ Follow the author: [Xiaohongshu](https://www.xiaohongshu.com/user/profile/66a7e7
 - **Display language**: System / Chinese / English, applied to the menu panel immediately.
 - **Appearance**: System / Light / Dark, applied to the panel and menus immediately.
 - **Launch at login**: register FinderWrap as a login item under Startup in the panel. If macOS asks, allow it under System Settings → General → Login Items. Turn it off before uninstalling.
+- **Hide the menu bar icon**: hide the status item under Interface in the panel; the app keeps running in the background. Open FinderWrap again to get the panel back as a small window.
 
 ## Coverage
 
@@ -34,7 +35,7 @@ Follow the author: [Xiaohongshu](https://www.xiaohongshu.com/user/profile/66a7e7
 | List view | Left/right previous/next item (separate switch); **endpoints do not cycle** |
 | Column view, rename, search fields | Stay native |
 
-- Current version: **1.0.12 (build 15)**, Apple Silicon (arm64) only, macOS 13+.
+- Current version: **1.0.13 (build 16)**, Apple Silicon (arm64) only, macOS 13+.
 - Intel users stay on 1.0.3. macOS 15 / 27 are not verified on real hardware yet; see [compatibility](docs/compatibility.md).
 
 ## Repository layout
@@ -105,7 +106,7 @@ brew uninstall --cask ygnstudio/ygn/finderwrap # uninstall
 Or download the DMG/ZIP from [Releases](https://github.com/ygnstudio/FinderWrap/releases/latest) and verify it with the matching `.sha256`:
 
 ```sh
-shasum -a 256 -c FinderWrap-1.0.12-b15-fixed-arm64.sha256
+shasum -a 256 -c FinderWrap-1.0.13-b16-fixed-arm64.sha256
 ```
 
 - Requires Apple Silicon (arm64), macOS 13+. 1.0.10 no longer ships a universal build; Intel users stay on 1.0.3.
@@ -161,7 +162,7 @@ Accessibility and Input Monitoring only. Signing keeps the project's fixed self-
 1. A push to `main` runs [CI](.github/workflows/ci.yml): unit tests → arm64 Release → architecture and minimum-system checks → unsigned archive + fixed-signature package (`FinderWrap-fixed-signature-<sha>`).
 2. Download the fixed-signature attachment, verify SHA-256 and `signing-policy.py verify`, then publish a `vX.Y.Z` release with DMG / ZIP / sha256 / signing.json.
 3. Update the Homebrew cask `version`, `sha256` and `depends_on arch/macos`.
-4. The 1.0.12 fixed-signature attachment comes from the CI run for this release commit (see [Releases](https://github.com/ygnstudio/FinderWrap/releases)); macOS 15/27 hardware verification remains a separate item.
+4. The 1.0.13 fixed-signature attachment comes from the CI run for this release commit (see [Releases](https://github.com/ygnstudio/FinderWrap/releases)); macOS 15/27 hardware verification remains a separate item.
 
 ### Homebrew maintenance
 

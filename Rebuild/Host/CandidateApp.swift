@@ -14,11 +14,15 @@ final class CandidateAppState: ObservableObject {
     @Published var listWrap = UserDefaults.standard.bool(forKey: "listWrapEnabled")
     @Published var galleryCycle = (UserDefaults.standard.object(forKey: "galleryCycleEnabled") as? Bool) ?? true
     @Published var shiftWrap = (UserDefaults.standard.object(forKey: "shiftWrapEnabled") as? Bool) ?? true
+    @Published var hideMenuBarIcon = AppMenuBarIcon.current.isHidden
     @Published var launchAtLogin = false
     @Published var launchAtLoginNeedsApproval = false
     @Published var launchAtLoginError: String?
     private let monitor = FinderWrapMonitor()
     private var timer: Timer?
+    /// Set by the menu-bar controller so toggling the icon applies instantly
+    /// instead of on the next launch.
+    var onHideMenuBarIconChanged: ((Bool) -> Void)?
 
     init() {
         monitor.setListWrap(listWrap)
@@ -153,6 +157,13 @@ final class CandidateAppState: ObservableObject {
         monitor.setShiftWrap(value)
     }
 
+    func setHideMenuBarIcon(_ value: Bool) {
+        guard hideMenuBarIcon != value else { return }
+        hideMenuBarIcon = value
+        UserDefaults.standard.set(value, forKey: AppMenuBarIcon.storageKey)
+        onHideMenuBarIconChanged?(value)
+    }
+
     func settings(_ suffix: String) {
         if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?" + suffix) {
             NSWorkspace.shared.open(url)
@@ -190,17 +201,257 @@ final class CandidateAppState: ObservableObject {
     }
 }
 
+/// Menu-bar-only app: AppKit owns the lifecycle because SwiftUI's
+/// `MenuBarExtra` cannot hide its own status item, which this app must support.
 @main
-struct FinderWrapCandidateApp: App {
-    @StateObject private var state = CandidateAppState()
+struct FinderWrapCandidateApp {
+    static func main() {
+        let application = NSApplication.shared
+        let delegate = AppDelegate()
+        application.delegate = delegate
+        application.setActivationPolicy(.accessory)
+        application.run()
+    }
+}
 
-    var body: some Scene {
-        MenuBarExtra {
-            CandidateMenuPanel(state: state)
-        } label: {
-            Image(systemName: "arrow.turn.down.right")
+@MainActor
+final class AppDelegate: NSObject, NSApplicationDelegate {
+    private var state: CandidateAppState?
+    private var menuBar: MenuBarController?
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        let state = CandidateAppState()
+        let menuBar = MenuBarController(state: state)
+        self.state = state
+        self.menuBar = menuBar
+        // Hidden mode shows the panel only when the user opens the app; a launch
+        // by the login item must stay invisible.
+        if state.hideMenuBarIcon, !LaunchEvent.launchedAsLoginItem {
+            menuBar.presentPanel()
         }
-        .menuBarExtraStyle(.window)
+    }
+
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        menuBar?.presentPanel()
+        return false
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        false
+    }
+}
+
+/// Owns the status item and the two panel presentations: a popover while the
+/// icon is visible, and a small window while it is hidden (the reopen/"open the
+/// app again" path).
+@MainActor
+final class MenuBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
+    private let state: CandidateAppState
+    private var statusItem: NSStatusItem?
+    private let popover = NSPopover()
+    private var panelWindow: PanelWindow?
+    private var escapeMonitor: Any?
+
+    init(state: CandidateAppState) {
+        self.state = state
+        super.init()
+
+        let item = makeStatusItem()
+        item.isVisible = !state.hideMenuBarIcon
+        statusItem = item
+
+        popover.behavior = .transient
+        popover.animates = true
+        popover.delegate = self
+
+        state.onHideMenuBarIconChanged = { [weak self] hidden in
+            self?.applyIconVisibility(hidden: hidden)
+        }
+    }
+
+    /// Entry point for clicks, reopens and the launch path.
+    func presentPanel() {
+        if let window = panelWindow, window.isVisible {
+            activate()
+            window.makeKeyAndOrderFront(nil)
+            return
+        }
+        if statusItem?.isVisible == true {
+            showPopover()
+        } else {
+            showWindow()
+        }
+    }
+
+    @objc private func togglePanel() {
+        if popover.isShown {
+            popover.performClose(nil)
+        } else if let window = panelWindow, window.isVisible {
+            activate()
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            showPopover()
+        }
+    }
+
+    /// Toggling the icon off must not take the panel away with it, so the open
+    /// popover hands the panel over to the window presentation. Turning the icon
+    /// back on installs a fresh status item: `isVisible = true` is not reliable
+    /// after an item was hidden on recent macOS releases (the item stays gone).
+    private func applyIconVisibility(hidden: Bool) {
+        if hidden {
+            statusItem?.isVisible = false
+        } else {
+            restoreStatusItem()
+        }
+        guard hidden else { return }
+        if popover.isShown { popover.performClose(nil) }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, self.state.hideMenuBarIcon else { return }
+            self.showWindow()
+        }
+    }
+
+    private func makeStatusItem() -> NSStatusItem {
+        let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        guard let button = item.button else { return item }
+        let configuration = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
+        let image = NSImage(systemSymbolName: "arrow.turn.down.right",
+                            accessibilityDescription: "FinderWrap")?
+            .withSymbolConfiguration(configuration)
+        image?.isTemplate = true
+        button.image = image
+        button.imageScaling = .scaleProportionallyDown
+        button.target = self
+        button.action = #selector(togglePanel)
+        button.toolTip = "FinderWrap"
+        return item
+    }
+
+    private func restoreStatusItem() {
+        if let existing = statusItem {
+            NSStatusBar.system.removeStatusItem(existing)
+        }
+        let item = makeStatusItem()
+        item.isVisible = true
+        statusItem = item
+    }
+
+    private func showPopover() {
+        guard let button = statusItem?.button else { return }
+        // The panel lives in exactly one place at a time; clicking the icon
+        // takes it away from the window presentation.
+        if let window = panelWindow, window.isVisible {
+            window.close()
+        }
+        // A closed popover keeps laying out its detached SwiftUI content, which
+        // can inflate `preferredContentSize`; a fresh controller per presentation
+        // keeps the size honest.
+        let controller = hostingController()
+        popover.contentViewController = controller
+        popover.contentSize = panelSize(of: controller)
+        popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
+        installEscapeMonitor()
+    }
+
+    /// `MenuBarExtra` panels close on Esc; the popover has to do that itself.
+    private func installEscapeMonitor() {
+        removeEscapeMonitor()
+        escapeMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, event.keyCode == 53, self.popover.isShown else { return event }
+            self.popover.performClose(nil)
+            return nil
+        }
+    }
+
+    private func removeEscapeMonitor() {
+        if let monitor = escapeMonitor {
+            NSEvent.removeMonitor(monitor)
+            escapeMonitor = nil
+        }
+    }
+
+    func popoverDidClose(_ notification: Notification) {
+        removeEscapeMonitor()
+    }
+
+    private func showWindow() {
+        if let existing = panelWindow {
+            activate()
+            existing.makeKeyAndOrderFront(nil)
+            return
+        }
+        let controller = hostingController()
+        let window = PanelWindow(contentRect: NSRect(x: 0, y: 0, width: 336, height: 520),
+                                 styleMask: [.titled, .closable],
+                                 backing: .buffered,
+                                 defer: false)
+        window.title = "FinderWrap"
+        window.isReleasedWhenClosed = false
+        window.isMovableByWindowBackground = true
+        window.collectionBehavior = [.moveToActiveSpace]
+        window.delegate = self
+        window.contentViewController = controller
+        window.setContentSize(panelSize(of: controller))
+        positionUnderMenuBar(window)
+        panelWindow = window
+        activate()
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    private func hostingController() -> NSHostingController<CandidateMenuPanel> {
+        let controller = NSHostingController(rootView: CandidateMenuPanel(state: state))
+        controller.sizingOptions = [.preferredContentSize]
+        return controller
+    }
+
+    /// SwiftUI needs one layout pass before it reports its height, and popovers
+    /// and windows both want an explicit size.
+    private func panelSize(of controller: NSViewController) -> NSSize {
+        let view = controller.view
+        view.frame = NSRect(x: 0, y: 0, width: 336, height: 200)
+        view.layoutSubtreeIfNeeded()
+        let fitting = view.fittingSize
+        return NSSize(width: max(336, fitting.width), height: max(fitting.height, 120))
+    }
+
+    private func positionUnderMenuBar(_ window: NSWindow) {
+        let mouse = NSEvent.mouseLocation
+        let screen = NSScreen.screens.first { NSMouseInRect(mouse, $0.frame, false) } ?? NSScreen.main
+        guard let visible = screen?.visibleFrame else {
+            window.center()
+            return
+        }
+        let size = window.frame.size
+        window.setFrameOrigin(NSPoint(x: visible.maxX - size.width - 16,
+                                      y: visible.maxY - size.height - 16))
+    }
+
+    private func activate() {
+        if #available(macOS 14.0, *) {
+            NSApp.activate()
+        } else {
+            NSApp.activate(ignoringOtherApps: true)
+        }
+    }
+
+    func windowWillClose(_ notification: Notification) {
+        guard let closing = notification.object as? NSWindow, closing === panelWindow else { return }
+        panelWindow = nil
+    }
+
+    /// SwiftUI changes the panel height when the hidden-mode hint appears or
+    /// disappears; keep the window tucked under the menu bar's top-right corner.
+    func windowDidResize(_ notification: Notification) {
+        guard let window = notification.object as? NSWindow, window === panelWindow else { return }
+        positionUnderMenuBar(window)
+    }
+}
+
+/// Titled panel window; Esc behaves like closing a popover.
+private final class PanelWindow: NSWindow {
+    override func cancelOperation(_ sender: Any?) {
+        performClose(nil)
     }
 }
 
@@ -270,6 +521,20 @@ private struct CandidateMenuPanel: View {
                 }
             }
             section(l.t("界面", "Interface")) {
+                toggleRow(l.t("隐藏菜单栏图标", "Hide menu bar icon"),
+                          icon: "menubar.rectangle",
+                          isOn: Binding(get: { state.hideMenuBarIcon },
+                                        set: { state.setHideMenuBarIcon($0) }),
+                          help: l.t("隐藏后 FinderWrap 仍在后台工作。需要打开本面板时，重新打开 FinderWrap 即可；它会以窗口形式出现。",
+                                    "Hidden keeps FinderWrap running in the background. To open this panel again, just open FinderWrap; it appears as a window."))
+                if state.hideMenuBarIcon {
+                    Text(l.t("菜单栏图标已隐藏，FinderWrap 仍在后台运行；重新打开 FinderWrap 会以窗口形式再次显示本面板。",
+                             "Menu bar icon hidden. FinderWrap keeps running in the background; open FinderWrap again to show this panel as a window."))
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .padding(.leading, 24)
+                }
                 optionRow(l.t("语言", "Language"), icon: "globe", selection: $languageRaw) {
                     Text(l.t("跟随系统", "System")).tag(AppLanguage.system.rawValue)
                     Text("中文").tag(AppLanguage.chinese.rawValue)
@@ -303,7 +568,7 @@ private struct CandidateMenuPanel: View {
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("FinderWrap").font(.system(size: 13, weight: .semibold))
-                Text("1.0.12").font(.caption2).foregroundStyle(.secondary)
+                Text("1.0.13").font(.caption2).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
         }

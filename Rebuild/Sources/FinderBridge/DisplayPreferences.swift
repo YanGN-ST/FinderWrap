@@ -25,6 +25,28 @@ public enum AppLanguage: String, CaseIterable, Sendable {
     }
 }
 
+/// Menu-bar icon visibility. `.hidden` keeps FinderWrap running in the
+/// background; the panel is only presented again when the app is reopened.
+public enum AppMenuBarIcon: String, CaseIterable, Sendable {
+    case visible
+    case hidden
+
+    public static let storageKey = "hideMenuBarIcon"
+
+    public static func resolved(storedHidden: Bool) -> AppMenuBarIcon {
+        storedHidden ? .hidden : .visible
+    }
+
+    public static var current: AppMenuBarIcon {
+        resolved(storedHidden: UserDefaults.standard.bool(forKey: storageKey))
+    }
+
+    public var isHidden: Bool { self == .hidden }
+
+    /// Value to persist, so the toggle and the stored preference never drift.
+    public var storedValue: Bool { isHidden }
+}
+
 /// App appearance. `.system` follows the current macOS appearance.
 public enum AppAppearance: String, CaseIterable, Sendable {
     case system
