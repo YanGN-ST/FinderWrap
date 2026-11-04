@@ -1,27 +1,15 @@
-# FinderWrap
+<p align="center">
+  <img src="./assets/readme/en/hero.svg" width="100%" alt="FinderWrap: row-wrapping arrow keys for Finder icon views">
+</p>
 
-Row-wrapping arrow-key navigation for Finder icon views: a menu-bar app reads the visible grid in the background, reads the live selection on each key press, computes the row-boundary target, then writes the selection back and verifies the readback. Works across ordinary folders, search/smart folders, grouped icons, the desktop, Quick Look and multiple selection; document and gallery ends cycle, and list view can map left/right to previous/next item.
+In Finder's icon view, Left/Right stop at the end of a row: reaching the first icon of the next row takes two key presses. FinderWrap is a small menu-bar utility that turns that into one — **Right on a row's last icon lands on the next row's first, Left on a row's first icon returns to the previous row's last**, and the ends of the whole grid cycle as well.
 
-📦 **Download**: <https://github.com/ygnstudio/FinderWrap/releases/latest> · 🍺 **Homebrew**: <https://github.com/ygnstudio/homebrew-ygn>
+## What it solves
 
-Follow the author: [Xiaohongshu](https://www.xiaohongshu.com/user/profile/66a7e7ae000000001d023641)
-
-## Features
-
-- **Icon-view row wrapping**: Right on the last item of a row goes to the first item of the next row; Left on the first item returns to the last item of the previous row. The document ends cycle too, so arrows never dead-end.
-- **Broad coverage**: ordinary / search / smart / iCloud folders, grouped icons, rows clipped by the window edge, desktop icons, Quick Look (Finder stays frontmost while the preview owns focus) and multiple selection (anchored on the outermost selected item).
-- **Shift range extension across rows**: hold Shift + Left/Right to keep extending a multi-file selection past a row edge, preserving the whole range. It covers the rows Finder has loaded; at an unloaded scroll edge it stops safely. The document ends stop instead of cycling. It has its own switch under Views; turn it off to keep Finder native.
-- **Gallery end cycling**: the thumbnail strip cycles at both ends. Left/right are fully taken over by the app (read selection → compute target → write selection + focus + scroll), independent of Finder's own keyboard cursor.
-- **List previous/next** (separate switch, off by default): left/right step one row; the end keys are consumed to keep the current selection, so Right never turns into “expand folder”.
-- **No persistent window**: menu-bar only (`LSUIElement`, no Dock icon or main window). Click the status item for the switch, permission state, view options, diagnostics and quit.
-- **Read-only layout + verified writes**: layout reads never mutate Finder; every selection write is verified by a readback, with a per-item `AXSelected` fallback. Keys are never replayed or injected.
-- **Two permissions**: Accessibility and Input Monitoring only. Apple Events automation is no longer needed as of 1.0.7.
-- **Settings remembered**: the main switch and view options persist, so the app restores itself on next launch (it stays off when permissions are missing).
-- **Display language**: System / Chinese / English, applied to the menu panel immediately.
-- **Appearance**: System / Light / Dark, applied to the panel and menus immediately.
-- **Launch at login**: register FinderWrap as a login item under Startup in the panel. If macOS asks, allow it under System Settings → General → Login Items. Turn it off before uninstalling.
-- **Hide the menu bar icon**: hide the status item under Interface in the panel; the app keeps running in the background. Open FinderWrap again to get the panel back as a small window.
-- **Vector mark**: the status item and the panel header share one vector mark (`Sources/FinderBridge/LogoMark.swift`, drawn on the same grid as the app icon) instead of a bitmap or an SF Symbol.
+- Row boundaries are no longer dead ends: wrapping, document-end cycling, grouped icons and clipped rows all follow the visible grid.
+- Hold Shift and Left/Right keeps extending a multi-file selection across rows instead of restarting it.
+- Gallery view cycles at both ends; list view can map Left/Right to previous/next item without mis-firing at endpoints.
+- Desktop icons, Quick Look, and search / smart / iCloud folders are covered.
 
 ## Coverage
 
@@ -36,64 +24,17 @@ Follow the author: [Xiaohongshu](https://www.xiaohongshu.com/user/profile/66a7e7
 | List view | Left/right previous/next item (separate switch); **endpoints do not cycle** |
 | Column view, rename, search fields | Stay native |
 
-- Current version: **1.0.14 (build 17)**, Apple Silicon (arm64) only, macOS 13+.
-- Intel users stay on 1.0.3. macOS 15 / 27 are not verified on real hardware yet; see [compatibility](docs/compatibility.md).
+## How it works
 
-## Repository layout
+<p align="center">
+  <img src="./assets/readme/en/flow.svg" width="100%" alt="Key handling flow: capture the key, read the selection, snapshot the grid, compute the target, write and verify">
+</p>
 
-```
-FinderWrap/
-├── Rebuild/                          # Production implementation: Swift Package core + host
-│   ├── Package.swift                 #   FinderBridge library and test target (macOS 13+)
-│   ├── Sources/FinderBridge/
-│   │   ├── AX.swift                  #   Bounded Accessibility reads and writes
-│   │   ├── GridModel.swift           #   Grid model + pure wrap decision (unit tested)
-│   │   ├── GridReader.swift          #   Background capture, surface detection, diagnostics
-│   │   └── FinderWrapMonitor.swift   #   Event tap, key decision, readback, list/gallery takeover
-│   ├── Host/                         #   SwiftUI menu-bar host
-│   │   ├── CandidateApp.swift
-│   │   ├── Info.plist                #   Version, LSUIElement, minimum system
-│   │   └── entitlements.plist        #   Empty (no Apple Events entitlement)
-│   └── Tests/FinderBridgeTests/      #   15 XCTest cases
-├── Resources/Assets.xcassets/        # App icon
-├── scripts/                          # Build / test / package / signing / diagnostics
-│   ├── build.sh / test.sh
-│   ├── package.sh / ci-sign-package.sh / archive-ci-build.sh
-│   ├── signing-policy.py / check-minimum-system.py
-│   ├── install.sh / uninstall.sh
-│   └── diagnose-menubar.py / repair-menubar-association.py
-├── Tests/                            # Python signing/system tests and fixtures
-├── docs/                             # Architecture / compatibility / testing / install / signing
-├── config/signing.json               # Pinned certificate fingerprint and designated requirement
-└── .github/workflows/ci.yml          # CI: tests → arm64 Release → fixed-signature package
-```
+- **Read-only layout**: the grid is collected on a background queue and never mutates Finder's display state.
+- **Writes are verified**: every selection write is read back; when only per-item reads are possible it falls back to `AXSelected`, and anything still uncertain stays native — keys are never replayed or injected.
+- **Two permissions**: Accessibility and Input Monitoring. Apple Events automation is no longer needed as of 1.0.7.
 
-## Key handling flow
-
-The event tap performs only bounded AX work; full layout capture runs on a background queue and selection changes never invalidate the layout.
-
-```mermaid
-flowchart LR
-    A[CGEvent tap<br/>left / right key] --> B[Read live AX selection]
-    B --> C[Background grid snapshot<br/>row clustering + sorting]
-    C --> D[Compute target<br/>row wrap / end cycle / gallery loop]
-    D --> E[Write selection<br/>AXSelectedChildren / SelectedRows]
-    E --> F[Immediate readback]
-    F -->|match| G[Consume key]
-    F -->|per-item only| H[Per-item AXSelected fallback]
-    F -->|still uncertain| I[Never replay the key<br/>fall back to native, record reason]
-```
-
-## Surface detection and safety boundaries
-
-- **Icon views**: walk up from focus to `AXGrid`, or `AXList/AXCollectionList` with the `IconView` identifier; if the structure differs, fall back to “any scroll area that exposes at least two icon cells” so macOS 15/27 structure changes still work.
-- **Desktop**: no ordinary icon collection and no focused window; use the focused `AXGroup/AXScrollArea` layer that yields icon items and select per item.
-- **Quick Look**: Finder stays running; the focused window subrole matches Quick Look case-insensitively. The first non-Quick-Look icon window in AX window order is the previewed layout.
-- **Gallery**: single-row thumbnail strips use the full-takeover path; without an identifier, a single row of writable cells is treated as a gallery.
-- **List**: the focused element is an `AXOutline` (identifier containing List, or no identifier with width > 250, excluding the sidebar); left/right only steps the native previous/next row.
-- **Safety**: layout is read-only; every selection write is read back; failures fall back per item; keys are never replayed or injected; uncertain results keep native behaviour and record a reason.
-
-## Install and upgrade
+## Install
 
 Homebrew (recommended):
 
@@ -110,61 +51,77 @@ Or download the DMG/ZIP from [Releases](https://github.com/ygnstudio/FinderWrap/
 shasum -a 256 -c FinderWrap-1.0.14-b17-fixed-arm64.sha256
 ```
 
-- Requires Apple Silicon (arm64), macOS 13+. 1.0.10 no longer ships a universal build; Intel users stay on 1.0.3.
-- Signed with the project's fixed self-signed certificate, not notarized. If the first launch is blocked, verify the download source, then allow it under System Settings → Privacy & Security. Homebrew keeps the system security checks.
-- After the first launch, grant Accessibility and Input Monitoring, then enable “左右键自动换行”. The app is menu-bar only: no Dock icon, no main window.
+- Current version **1.0.14 (build 17)**, Apple Silicon (arm64) only, macOS 13+. Intel users stay on 1.0.3.
+- Signed with a fixed self-signed certificate, not notarized: if the first launch is blocked, verify the source and allow it under System Settings → Privacy & Security. Homebrew keeps the system security check.
+- Grant Accessibility and Input Monitoring on first launch, then turn on “Wrap left/right arrows”. The app lives in the menu bar only — no Dock icon, no main window. Settings are remembered, and the app restores itself on the next launch (staying off when permissions are missing).
+- The Interface section can hide the menu-bar icon: the app keeps running in the background, and opening FinderWrap again shows the panel as a small window. Turn off Launch at login before uninstalling.
+
+## Compatibility and limits
+
+| macOS | Status |
+|---|---|
+| 26.x | Verified on real hardware (26.6.2 / Finder 26.4) |
+| 15.x | Historic “no effect” reports (the old core was stuck on window/section checks). 1.0.10 removed those hard checks and added structural fallbacks; **not re-verified on hardware** |
+| 27.x | Not verified on hardware; built with SDK 27, same fallbacks and diagnostics apply |
+
+- List endpoints do not cycle: writing a selection on an invisible row clears it, so the end keys are consumed instead of being handed back to Finder.
+- Shift range extension only covers rows Finder has loaded; at an unloaded scroll edge it keeps the current selection and stops.
+- Column view, rename and search fields stay native; Quick Look must be opened from the icon view.
+- AX and Apple Events have no cross-process atomic transaction: do not change Finder's selection with another automation tool at the same time.
+- Off-screen targets and unconfirmable collapsed groups stay native; the preview build does not promise that every layout is supported.
+
+If it does nothing: click the menu-bar icon → “Copy diagnostics”. The report contains macOS/Finder versions, permissions, focus and window roles, grid identity, row/column counts and recent decisions — **no file names, paths or key content**. See [compatibility](docs/compatibility.md).
 
 ## Development and tests
 
 Xcode command-line tools are required; there are no third-party runtime dependencies.
 
 ```sh
-bash scripts/test.sh            # Swift XCTest + Python signing/system tests
-bash scripts/build.sh Release   # arm64 Release into build/Products/Release
-bash scripts/package.sh --fixed # DMG/ZIP when the fixed certificate is configured
+bash scripts/test.sh          # Swift XCTest + Python signing/system tests
+bash scripts/build.sh Release # arm64 Release into build/Products/Release
+bash scripts/package.sh --fixed  # DMG/ZIP when the fixed certificate is configured
 ```
 
-- Swift tests cover pure logic: row clustering, row wrapping, ragged last row, single-row cycling, document-end cycling, multi-selection anchoring, duplicate URLs and invalid geometry. Tests never touch Finder, send real keys, or change permissions.
-- Python tests cover signing policy, minimum system and fixed-certificate rules; CI additionally checks shell syntax and the unsigned archive.
-- See [testing](docs/testing.md) and [signing](docs/signing.md) for the build and release constraints.
+- Swift tests cover pure logic: row clustering, wrapping, ragged last rows, single-row cycling, document-end cycling, multi-selection anchors, duplicate URLs and invalid geometry; tests never touch Finder, send real keys or change permissions.
+- Python tests cover the signing policy, minimum system and fixed-certificate rules; CI additionally runs shell syntax checks and an unsigned archive.
+- See [acceptance](docs/testing.md) and [signing](docs/signing.md) for build and release constraints.
 
-## Compatibility
+<details>
+<summary>Repository layout</summary>
 
-| macOS | Status |
-|---|---|
-| 26.x | Verified locally (26.6.2 / Finder 26.4) |
-| 15.x | Historical “no response” reports (the old core stopped at window/section guards). 1.0.10 removes those hard guards and adds structural and per-item fallbacks, **not yet re-verified on real hardware** |
-| 27.x | Not tested on real hardware; built with SDK 27, the same fallbacks and diagnostics apply, still needs verification |
+```
+FinderWrap/
+├── Rebuild/                          # Production code: Swift Package core + menu-bar host
+│   ├── Sources/FinderBridge/
+│   │   ├── AX.swift                  #   Bounded Accessibility read/write helpers
+│   │   ├── GridModel.swift           #   Grid model + pure wrapping decisions (unit-tested)
+│   │   ├── GridReader.swift          #   Background layout capture, surface detection, diagnostics
+│   │   ├── LogoMark.swift            #   Vector mark shared by status item and panel header
+│   │   └── FinderWrapMonitor.swift   #   Event tap, key decisions, verified writes, list/gallery takeover
+│   ├── Host/                         #   AppKit menu-bar host + SwiftUI panel
+│   ├── Tests/FinderBridgeTests/      #   XCTest
+│   └── Package.swift
+├── Resources/Assets.xcassets/        # App icon
+├── scripts/                          # Build / test / package / signing / diagnostics
+├── Tests/                            # Python signing and system tests
+├── docs/                             # Architecture / compatibility / acceptance / signing
+├── config/signing.json               # Pinned certificate fingerprint and designated requirement
+└── .github/workflows/ci.yml          # CI: tests → arm64 Release → fixed-signature packaging
+```
+</details>
 
-On “no response”: click the menu-bar item → “复制诊断信息” (Copy diagnostics) and send the text back. Diagnostics include the macOS/Finder version, permissions, focused element and window roles, grid identifiers, row/cell counts and recent decisions; **no filenames, paths or key contents**. See [compatibility](docs/compatibility.md).
+## License and signing
 
-## Known limitations
+[MIT](LICENSE). Signed with a fixed self-signed certificate, not notarized, no telemetry, no network access; permissions are granted by the user. The fixed certificate and designated requirement in `config/signing.json` keep the signing identity stable across updates so system grants survive; a macOS upgrade or a system reset may still ask again. See [signing](docs/signing.md).
 
-- List endpoints do not cycle: writing an off-screen row clears the selection, so end keys are consumed instead of being handed to Finder.
-- Column view, rename and search fields stay native; Quick Look must be opened from an icon view.
-- AX and Apple Events have no cross-process atomic transaction: do not change the Finder selection through another automation tool at the same time.
-- Off-screen targets and unconfirmed collapsed groups stay native; the preview release does not promise that every layout is supported.
-- Shift extension covers only the rows Finder has loaded; at an unloaded scroll edge it keeps the current range and stops instead of handing the key back to Finder, which would collapse the selection.
+<details>
+<summary>Release flow</summary>
 
-## License
+1. A push to `main` triggers [CI](.github/workflows/ci.yml): unit tests → arm64 Release → architecture and minimum-system checks → unsigned archive + fixed-signature package (`FinderWrap-fixed-signature-<sha>`).
+2. Download the fixed-signature artifact, verify SHA-256 and `signing-policy.py verify`, then publish a `vX.Y.Z` Release with four assets (DMG / ZIP / sha256 / signing.json).
+3. Update the Homebrew cask `version`, `sha256` and `depends_on arch/macos`; the cask lives at `Casks/finderwrap.rb` in [ygnstudio/homebrew-ygn](https://github.com/ygnstudio/homebrew-ygn).
+4. Real-hardware acceptance on macOS 15 / 27 remains a separate task.
 
-[MIT](LICENSE). The app uses a fixed self-signed certificate, is not notarized, has no telemetry and no networking; permissions are granted by the user.
+</details>
 
-### Permissions and signing
-
-Accessibility and Input Monitoring only. Signing keeps the project's fixed self-signed certificate (`config/signing.json` pins the fingerprint and designated requirement); the identity is stable across upgrades so system permissions can carry over, though OS upgrades or a system reset can still require re-approval. See [signing](docs/signing.md).
-
-### Diagnostics and feedback
-
-“复制诊断信息” copies a redacted report: system/Finder version, permissions, focused element and window roles, the grid role/subrole/identifier, whether the structural fallback was used, selected-children support, row/cell counts, recent captures/decisions and the last capture failure. It never includes filenames, paths, window titles or key contents.
-
-### Versioning and release flow
-
-1. A push to `main` runs [CI](.github/workflows/ci.yml): unit tests → arm64 Release → architecture and minimum-system checks → unsigned archive + fixed-signature package (`FinderWrap-fixed-signature-<sha>`).
-2. Download the fixed-signature attachment, verify SHA-256 and `signing-policy.py verify`, then publish a `vX.Y.Z` release with DMG / ZIP / sha256 / signing.json.
-3. Update the Homebrew cask `version`, `sha256` and `depends_on arch/macos`.
-4. The 1.0.14 fixed-signature attachment comes from the CI run for this release commit (see [Releases](https://github.com/ygnstudio/FinderWrap/releases)); macOS 15/27 hardware verification remains a separate item.
-
-### Homebrew maintenance
-
-The cask lives in [ygnstudio/homebrew-ygn](https://github.com/ygnstudio/homebrew-ygn) at `Casks/finderwrap.rb`. When releasing, update `version "x.y.z,build"`, the DMG `sha256`, the URL and the livecheck regex; machines that are not Apple Silicon must keep the old 1.0.3 cask record, and never use `--force` to overwrite a user's manual installation.
+Follow the author: [Xiaohongshu](https://www.xiaohongshu.com/user/profile/66a7e7ae000000001d023641)

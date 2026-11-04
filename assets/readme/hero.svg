@@ -1,0 +1,73 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="380" viewBox="0 0 1200 380" role="img" aria-labelledby="hero-title hero-desc">
+  <title id="hero-title">FinderWrap：让 Finder 图标视图的左右键跨行换行</title>
+  <desc id="hero-desc">左侧是项目名与一句价值说明；右侧是 Finder 图标视图的两行图标，一条回折箭头从第一行行末绕到第二行行首，表示左右键跨过行边界。</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101419"/>
+      <stop offset="1" stop-color="#0B0E13"/>
+    </linearGradient>
+    <linearGradient id="tile" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1C2430"/>
+      <stop offset="1" stop-color="#171D27"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1200" height="380" rx="26" fill="url(#bg)"/>
+
+  <!-- title block -->
+  <g id="title-block" transform="translate(56 54)">
+    <text x="0" y="0" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="17" font-weight="600" letter-spacing="2.4" fill="#7C8AA0">MACOS 菜单栏工具 · FINDER 图标视图</text>
+    <text x="0" y="86" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="64" font-weight="700" fill="#F4F7FB">FinderWrap</text>
+    <text x="0" y="146" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="26" font-weight="600" fill="#DCE4EF">左键右箭，跨过行边界</text>
+    <text x="0" y="184" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="21" font-weight="400" fill="#93A0B4">行末按右键落到下一行行首，行首按左键回到上一行行末</text>
+
+    <g id="meta" transform="translate(0 246)">
+      <text x="0" y="0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" fill="#7C8AA0">macOS 13+</text>
+      <text x="128" y="0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" fill="#4A5668">·</text>
+      <text x="152" y="0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" fill="#7C8AA0">Apple Silicon</text>
+      <text x="310" y="0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" fill="#4A5668">·</text>
+      <text x="334" y="0" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="18" fill="#7C8AA0">MIT</text>
+    </g>
+  </g>
+
+  <!-- project material: two rows of Finder icon cells with a wrap arrow -->
+  <g id="row-wrap" transform="translate(0 0)">
+    <g id="row-1" transform="translate(742 64)">
+      <rect x="0" y="0" width="64" height="64" rx="15" fill="url(#tile)" stroke="#2C3846" stroke-width="1.5"/>
+      <rect x="82" y="0" width="64" height="64" rx="15" fill="url(#tile)" stroke="#2C3846" stroke-width="1.5"/>
+      <rect x="164" y="0" width="64" height="64" rx="15" fill="url(#tile)" stroke="#2C3846" stroke-width="1.5"/>
+      <rect x="246" y="0" width="64" height="64" rx="15" fill="#16233A" stroke="#4C8DFF" stroke-width="2.5"/>
+      <circle cx="278" cy="32" r="7" fill="#BBD6FF"/>
+
+      <g fill="#8FA3BE">
+        <rect x="19" y="17" width="26" height="26" rx="7"/>
+        <rect x="101" y="17" width="26" height="26" rx="7"/>
+        <rect x="183" y="17" width="26" height="26" rx="7"/>
+      </g>
+    </g>
+
+    <g id="row-2" transform="translate(742 252)">
+      <rect x="0" y="0" width="64" height="64" rx="15" fill="#16233A" stroke="#4C8DFF" stroke-width="2.5"/>
+      <circle cx="32" cy="32" r="7" fill="#BBD6FF"/>
+      <rect x="82" y="0" width="64" height="64" rx="15" fill="url(#tile)" stroke="#2C3846" stroke-width="1.5"/>
+      <rect x="164" y="0" width="64" height="64" rx="15" fill="url(#tile)" stroke="#2C3846" stroke-width="1.5"/>
+      <rect x="246" y="0" width="64" height="64" rx="15" fill="url(#tile)" stroke="#2C3846" stroke-width="1.5"/>
+      <g fill="#8FA3BE">
+        <rect x="101" y="17" width="26" height="26" rx="7"/>
+        <rect x="183" y="17" width="26" height="26" rx="7"/>
+        <rect x="265" y="17" width="26" height="26" rx="7"/>
+      </g>
+    </g>
+
+    <!-- row boundary -->
+    <path id="row-boundary" d="M742 190 H1052" stroke="#33404F" stroke-width="1.5" stroke-dasharray="7 9"/>
+
+    <!-- right key: wrap from row-1 end to row-2 start -->
+    <path id="wrap-right" d="M1020 132 V170 a18 18 0 0 1 -18 18 H796 a18 18 0 0 0 -18 18 V212" fill="none" stroke="#4C8DFF" stroke-width="8" stroke-linecap="round"/>
+    <path id="wrap-right-head" d="M756 200 L778 236 L800 200 Z" fill="#4C8DFF" stroke="#4C8DFF" stroke-width="8" stroke-linejoin="round"/>
+
+    <!-- label for the wrap direction -->
+    <text x="897" y="352" text-anchor="middle" font-family="ui-monospace, SFMono-Regular, Menlo, monospace" font-size="17" fill="#6E86A8">行末 → 下一行行首　·　行首 → 上一行行末</text>
+  </g>
+</svg>

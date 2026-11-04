@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="flow-title flow-desc">
+  <title id="flow-title">按一次右键，发生什么</title>
+  <desc id="flow-desc">五个阶段：捕获按键、读取选区、网格快照、计算目标、写回并回读。</desc>
+  <defs>
+    <linearGradient id="flow-card" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1C2430"/>
+      <stop offset="1" stop-color="#171D27"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="360" rx="26" fill="#101419"/>
+  <text x="56" y="56" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="20" font-weight="600" letter-spacing="1.6" fill="#7C8AA0">按一次右键，发生什么</text>
+
+  <g>
+    <rect x="56" y="88" width="200" height="168" rx="16" fill="url(#flow-card)" stroke="#2A3543"/>
+    <text x="76" y="136" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="23" font-weight="600" fill="#E9EEF6">捕获按键</text>
+    <text x="76" y="180" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="18" fill="#7F8DA1">CGEvent tap</text>
+    <text x="76" y="210" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="18" fill="#7F8DA1">只识别左右键</text>
+  </g>
+
+  <path d="M258 172 h12 M270 172 l-6 -6 M270 172 l-6 6" fill="none" stroke="#4C8DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g>
+    <rect x="278" y="88" width="200" height="168" rx="16" fill="url(#flow-card)" stroke="#2A3543"/>
+    <text x="298" y="136" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="23" font-weight="600" fill="#E9EEF6">读取选区</text>
+    <text x="298" y="180" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="18" fill="#7F8DA1">Accessibility</text>
+    <text x="298" y="210" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="18" fill="#7F8DA1">有界读取，只读</text>
+  </g>
+
+  <path d="M480 172 h12 M492 172 l-6 -6 M492 172 l-6 6" fill="none" stroke="#4C8DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g>
+    <rect x="500" y="88" width="200" height="168" rx="16" fill="url(#flow-card)" stroke="#2A3543"/>
+    <text x="520" y="136" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="23" font-weight="600" fill="#E9EEF6">网格快照</text>
+    <text x="520" y="180" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="18" fill="#7F8DA1">后台队列</text>
+    <text x="520" y="210" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="18" fill="#7F8DA1">行聚类 + 排序</text>
+  </g>
+
+  <path d="M702 172 h12 M714 172 l-6 -6 M714 172 l-6 6" fill="none" stroke="#4C8DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g>
+    <rect x="722" y="88" width="200" height="168" rx="16" fill="url(#flow-card)" stroke="#2A3543"/>
+    <text x="742" y="136" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="23" font-weight="600" fill="#E9EEF6">计算目标</text>
+    <text x="742" y="180" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="18" fill="#7F8DA1">跨行 / 首尾循环</text>
+    <text x="742" y="210" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="18" fill="#7F8DA1">画廊一整圈</text>
+  </g>
+
+  <path d="M924 172 h12 M936 172 l-6 -6 M936 172 l-6 6" fill="none" stroke="#4C8DFF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <g>
+    <rect x="944" y="88" width="200" height="168" rx="16" fill="url(#flow-card)" stroke="#4C8DFF"/>
+    <text x="964" y="136" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="23" font-weight="600" fill="#EAF2FF">写回并回读</text>
+    <text x="964" y="180" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="18" fill="#8FB2E8">AXSelected</text>
+    <text x="964" y="210" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="18" fill="#8FB2E8">不一致就逐项兜底</text>
+  </g>
+
+  <text x="56" y="318" font-family="-apple-system, BlinkMacSystemFont, 'PingFang SC', 'Segoe UI', sans-serif" font-size="19" fill="#7F8DA1">布局始终只读；写选择后立即回读，不确定时保持 Finder 原生，不重放、不注入按键。</text>
+</svg>
