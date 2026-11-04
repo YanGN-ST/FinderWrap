@@ -23,6 +23,7 @@ final class CandidateAppState: ObservableObject {
     /// Set by the menu-bar controller so toggling the icon applies instantly
     /// instead of on the next launch.
     var onHideMenuBarIconChanged: ((Bool) -> Void)?
+    var onAppearanceChanged: (() -> Void)?
 
     init() {
         monitor.setListWrap(listWrap)
@@ -186,6 +187,12 @@ final class CandidateAppState: ObservableObject {
         NSApplication.shared.terminate(nil)
     }
 
+    /// Re-reads the stored appearance and lets the menu bar controller follow.
+    func refreshAppearance() {
+        Self.applyStoredAppearance()
+        onAppearanceChanged?()
+    }
+
     /// AppKit-level appearance so the menu-bar panel (and its context menus)
     /// follow the stored choice immediately, not only after a relaunch.
     static func applyStoredAppearance() {
@@ -264,6 +271,9 @@ final class MenuBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
         popover.animates = true
         popover.delegate = self
 
+        state.onAppearanceChanged = { [weak self] in
+            self?.refreshPopoverAppearance()
+        }
         state.onHideMenuBarIconChanged = { [weak self] hidden in
             self?.applyIconVisibility(hidden: hidden)
         }
@@ -315,13 +325,10 @@ final class MenuBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     private func makeStatusItem() -> NSStatusItem {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         guard let button = item.button else { return item }
-        let configuration = NSImage.SymbolConfiguration(pointSize: 14, weight: .regular)
-        let image = NSImage(systemSymbolName: "arrow.turn.down.right",
-                            accessibilityDescription: "FinderWrap")?
-            .withSymbolConfiguration(configuration)
-        image?.isTemplate = true
-        button.image = image
+        button.image = LogoMark.statusItemImage(height: 17)
+        button.image?.accessibilityDescription = "FinderWrap"
         button.imageScaling = .scaleProportionallyDown
+        button.imagePosition = .imageOnly
         button.target = self
         button.action = #selector(togglePanel)
         button.toolTip = "FinderWrap"
@@ -350,8 +357,24 @@ final class MenuBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
         let controller = hostingController()
         popover.contentViewController = controller
         popover.contentSize = panelSize(of: controller)
+        popover.appearance = storedPopoverAppearance()
         popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
         installEscapeMonitor()
+    }
+
+    /// A popover anchored to the menu bar otherwise picks up the menu bar's
+    /// vibrancy appearance, which can disagree with the panel's own scheme.
+    func refreshPopoverAppearance() {
+        popover.appearance = storedPopoverAppearance()
+    }
+
+    private func storedPopoverAppearance() -> NSAppearance? {
+        let raw = UserDefaults.standard.string(forKey: AppAppearance.storageKey) ?? AppAppearance.system.rawValue
+        switch AppAppearance.resolved(raw) {
+        case .system: return nil
+        case .light: return NSAppearance(named: .aqua)
+        case .dark: return NSAppearance(named: .darkAqua)
+        }
     }
 
     /// `MenuBarExtra` panels close on Esc; the popover has to do that itself.
@@ -445,6 +468,32 @@ final class MenuBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     func windowDidResize(_ notification: Notification) {
         guard let window = notification.object as? NSWindow, window === panelWindow else { return }
         positionUnderMenuBar(window)
+    }
+}
+
+/// The app mark as vector paths, so the header and the status item share one
+/// piece of artwork instead of the raster app icon.
+private struct LogoMarkView: View {
+    var arrow: Color
+    var cells: Color
+
+    var body: some View {
+        Canvas { context, size in
+            let transform = LogoMark.fitTransform(in: CGRect(origin: .zero, size: size))
+            for cell in LogoMark.cells {
+                var path = Path()
+                path.addPath(Path(LogoMark.cellPath(cell)), transform: transform)
+                context.fill(path, with: .color(cells))
+            }
+            let style = StrokeStyle(lineWidth: LogoMark.strokeWidth * transform.a,
+                                    lineCap: .round,
+                                    lineJoin: .round)
+            for line in [LogoMark.shaftPath(), LogoMark.headPath()] {
+                var path = Path()
+                path.addPath(Path(line), transform: transform)
+                context.stroke(path, with: .color(arrow), style: style)
+            }
+        }
     }
 }
 
@@ -552,23 +601,17 @@ private struct CandidateMenuPanel: View {
         .padding(16)
         .frame(width: 336)
         .preferredColorScheme(colorScheme)
-        .onChange(of: appearanceRaw) { _ in CandidateAppState.applyStoredAppearance() }
+        .onChange(of: appearanceRaw) { _ in state.refreshAppearance() }
     }
 
     private func header(_ l: L10n) -> some View {
         HStack(spacing: 10) {
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .fill(Color.accentColor.opacity(0.14))
-                .frame(width: 30, height: 30)
-                .overlay {
-                    Image(systemName: "arrow.turn.down.right")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.tint)
-                }
+            LogoMarkView(arrow: .accentColor, cells: Color.accentColor.opacity(0.38))
+                .frame(width: 34, height: 26)
                 .accessibilityHidden(true)
             VStack(alignment: .leading, spacing: 2) {
                 Text("FinderWrap").font(.system(size: 13, weight: .semibold))
-                Text("1.0.13").font(.caption2).foregroundStyle(.secondary)
+                Text("1.0.14").font(.caption2).foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)
         }
