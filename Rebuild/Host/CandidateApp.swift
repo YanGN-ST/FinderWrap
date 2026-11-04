@@ -325,7 +325,7 @@ final class MenuBarController: NSObject, NSPopoverDelegate, NSWindowDelegate {
     private func makeStatusItem() -> NSStatusItem {
         let item = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         guard let button = item.button else { return item }
-        button.image = LogoMark.statusItemImage(height: 17)
+        button.image = LogoMark.statusItemImage()
         button.image?.accessibilityDescription = "FinderWrap"
         button.imageScaling = .scaleProportionallyDown
         button.imagePosition = .imageOnly

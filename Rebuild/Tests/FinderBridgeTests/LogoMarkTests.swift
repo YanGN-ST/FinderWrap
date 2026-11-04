@@ -45,9 +45,9 @@ final class LogoMarkTests: XCTestCase {
     }
 
     func testStatusItemImageIsATemplateAtStatusSize() {
-        let image = LogoMark.statusItemImage(height: 17)
-        XCTAssertEqual(image.size.height, 17)
-        XCTAssertEqual(image.size.width, 22) // 17 × 341/262, rounded
+        let image = LogoMark.statusItemImage()
+        XCTAssertEqual(image.size.height, 14)
+        XCTAssertEqual(image.size.width, 18) // 14 × 341/262, rounded
         XCTAssertTrue(image.isTemplate)
         XCTAssertEqual(image.accessibilityDescription, "FinderWrap")
 

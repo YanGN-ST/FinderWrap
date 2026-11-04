@@ -67,7 +67,10 @@ public enum LogoMark {
 
     /// Template image for the menu bar: the arrow is solid, the wrapped icons
     /// are dimmed so the mark reads at status-item size.
-    public static func statusItemImage(height: CGFloat = 17,
+    ///
+    /// The artwork fills the whole image, so the default height is the glyph
+    /// height of Apple's own menu bar extras (~14pt inside a 16pt image).
+    public static func statusItemImage(height: CGFloat = 14,
                                        accessibilityDescription: String = "FinderWrap") -> NSImage {
         let width = (height * artAspectRatio).rounded()
         let image = NSImage(size: NSSize(width: width, height: height), flipped: true) { rect in

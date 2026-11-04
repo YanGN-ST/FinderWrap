@@ -10,7 +10,7 @@
 
 菜单栏呈现：常驻 `NSStatusItem`，点图标弹出 `NSPopover` 面板。勾选“隐藏菜单栏图标”后移除状态项、应用继续在后台运行；重新打开 FinderWrap（`applicationShouldHandleReopen`）或在隐藏状态下手动启动时，面板以可关闭的小窗口出现在菜单栏下方右侧。恢复图标时重建状态项（`isVisible = true` 在近期 macOS 上不能可靠恢复已隐藏的项）。
 
-图标绘制：`Sources/FinderBridge/LogoMark.swift` 用路径描述 App 图标里的“箭头包住图标网格”标记（512×512 设计网格、`artBounds`、五个圆角方块、两条中心线路径），`statusItemImage(height:)` 据此生成菜单栏用的模板图（箭头实心、方块 45% 透明），面板标题用同一个 `LogoMarkView` 的 `Canvas` 绘制。状态项与标题因此不依赖位图资源，也不再用 SF Symbol 占位。
+图标绘制：`Sources/FinderBridge/LogoMark.swift` 用路径描述 App 图标里的“箭头包住图标网格”标记（512×512 设计网格、`artBounds`、五个圆角方块、两条中心线路径），`statusItemImage(height:)` 据此生成菜单栏用的模板图（箭头实心、方块 45% 透明），默认高度 14pt——与系统菜单栏图标（16pt 图像、约 14pt 字形）视觉大小一致；面板标题用同一个 `LogoMarkView` 的 `Canvas` 绘制。状态项与标题因此不依赖位图资源，也不再用 SF Symbol 占位。
 
 场景识别：
 
