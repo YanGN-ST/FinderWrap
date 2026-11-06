@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="400" viewBox="0 0 1200 400" role="img" aria-labelledby="title desc">
+  <title id="title">FinderWrap — Move beyond the row.</title>
+  <desc id="desc">Move beyond the row. A visual summary of the project.</desc>
+  <rect width="1200" height="400" rx="24" fill="#101c2d"/>
+  <g font-family="-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',sans-serif">
+    <text x="64" y="87" font-size="19" font-weight="700" letter-spacing="2" fill="#83b7ff">MACOS · FINDER</text>
+    <text x="64" y="178" font-size="58" font-weight="700" fill="#f2f7ff">FinderWrap</text>
+    <text x="64" y="238" font-size="32" font-weight="500" fill="#f2f7ff">Move beyond the row.</text>
+    <path d="M64 285h84" stroke="#83b7ff" stroke-width="5" stroke-linecap="round"/>
+    <g transform="translate(790 90)" fill="#314664"><rect x="0" y="0" width="58" height="48" rx="8"/><rect x="78" y="0" width="58" height="48" rx="8"/><rect x="156" y="0" width="58" height="48" rx="8"/><rect x="234" y="0" width="58" height="48" rx="8"/><rect x="0" y="136" width="58" height="48" rx="8"/><rect x="78" y="136" width="58" height="48" rx="8"/><rect x="156" y="136" width="58" height="48" rx="8"/><rect x="234" y="136" width="58" height="48" rx="8"/><path d="M264 58v32H29v32" fill="none" stroke="#83b7ff" stroke-width="7" stroke-linecap="round"/><path d="m18 112 11 14 11-14" fill="none" stroke="#83b7ff" stroke-width="7" stroke-linecap="round"/></g>
+  </g>
+</svg>
